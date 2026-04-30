@@ -1,0 +1,70 @@
+name: Deploy to manifest repo (PR version)
+
+on:
+  push:
+    branches:
+      - feature-b
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate token
+        id: generate_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.MANIFEST_APP_ID }}
+          private-key: ${{ secrets.MANIFEST_APP_PRIVATE_KEY }}
+          owner: carrry-am
+          repositories: practice-manifest
+
+      - name: Clone manifest repo
+        run: |
+          git clone https://x-access-token:${{ steps.generate_token.outputs.token }}@github.com/carrry-am/practice-manifest.git
+
+      - name: Create branch and update image tag
+        run: |
+          cd practice-manifest
+          git switch target-b
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          BRANCH_NAME="update-target-b-${SHORT_SHA}"
+          git switch -c "${BRANCH_NAME}"
+          yq -i ".sample-app.image.tag = \"hash.${SHORT_SHA}\"" target-b/values.yaml
+
+      - name: Commit and push
+        run: |
+          cd practice-manifest
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "practice-bot"
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          BRANCH_NAME="update-target-b-${SHORT_SHA}"
+          git add -A
+          git commit -m "chore: update image to hash.${SHORT_SHA}"
+          git push origin "${BRANCH_NAME}"
+
+      - name: Create Pull Request
+        id: create_pr
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+        run: |
+          cd practice-manifest
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          BRANCH_NAME="update-target-b-${SHORT_SHA}"
+          gh pr create \
+            --base target-b \
+            --head "${BRANCH_NAME}" \
+            --title "Update target-b image to hash.${SHORT_SHA}" \
+            --body "Auto-generated PR by GitHub Actions"
+
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+        run: |
+          cd practice-manifest
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          BRANCH_NAME="update-target-b-${SHORT_SHA}"
+          gh pr merge "${BRANCH_NAME}" --auto --merge --delete-branch
