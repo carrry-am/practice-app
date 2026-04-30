@@ -14,7 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Show concurrency value
-        run: echo "concurrency group: ${{ github.workflow }}-${{ github.ref }}"
+        run: |
+          echo "concurrency group: ${{ github.workflow }}-${{ github.ref }}"
 
       - name: Generate token
         id: generate_token
