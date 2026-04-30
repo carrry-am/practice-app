@@ -5,6 +5,10 @@ on:
     branches:
       - feature-a
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   update-manifest:
     runs-on: ubuntu-latest
