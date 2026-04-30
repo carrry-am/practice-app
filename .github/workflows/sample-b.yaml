@@ -66,4 +66,4 @@ jobs:
             --head "${BRANCH_NAME}" \
             --title "Update target-b image to hash.${SHORT_SHA}" \
             --body "Auto-generated PR by GitHub Actions"
-          gh pr merge "${BRANCH_NAME}" --auto --merge --delete-branch
+          gh pr merge "${BRANCH_NAME}" --merge --delete-branch
