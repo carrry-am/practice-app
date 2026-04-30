@@ -9,6 +9,9 @@ jobs:
   update-manifest:
     runs-on: ubuntu-latest
     steps:
+      - name: Sleep for testing concurrency
+        run: sleep 60
+
       - name: Generate token
         id: generate_token
         uses: actions/create-github-app-token@v1
