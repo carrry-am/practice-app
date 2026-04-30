@@ -1,0 +1,41 @@
+name: Deploy to manifest repo
+
+on:
+  push:
+    branches:
+      - feature-a
+
+jobs:
+  update-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate token
+        id: generate_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.MANIFEST_APP_ID }}
+          private-key: ${{ secrets.MANIFEST_APP_PRIVATE_KEY }}
+          owner: carrry-am
+          repositories: practice-manifest
+
+      - name: Clone manifest repo
+        run: |
+          git clone https://x-access-token:${{ steps.generate_token.outputs.token }}@github.com/carrry-am/practice-manifest.git
+
+      - name: Update image tag
+        run: |
+          cd practice-manifest
+          git checkout target-a
+          sudo wget -O /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          yq -i ".sample-app.image.tag = \"hash.${SHORT_SHA}\"" target-a/values.yaml
+
+      - name: Commit and push
+        run: |
+          cd practice-manifest
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "practice-bot"
+          git add -A
+          git commit -m "chore: update image to hash.$(echo ${{ github.sha }} | cut -c1-7)"
+          git push origin target-a
