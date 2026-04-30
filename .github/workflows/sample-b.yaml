@@ -46,7 +46,7 @@ jobs:
           git commit -m "chore: update image to hash.${SHORT_SHA}"
           git push origin "${BRANCH_NAME}"
 
-      - name: Create Pull Request
+      - name: Create Pull Request and merge
         id: create_pr
         env:
           GH_TOKEN: ${{ steps.generate_token.outputs.token }}
@@ -59,12 +59,4 @@ jobs:
             --head "${BRANCH_NAME}" \
             --title "Update target-b image to hash.${SHORT_SHA}" \
             --body "Auto-generated PR by GitHub Actions"
-
-      - name: Enable auto-merge
-        env:
-          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
-        run: |
-          cd practice-manifest
-          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          BRANCH_NAME="update-target-b-${SHORT_SHA}"
           gh pr merge "${BRANCH_NAME}" --auto --merge --delete-branch
